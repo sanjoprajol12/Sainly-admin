@@ -1,0 +1,7 @@
+{
+  "buildCommand": "if [ \"$VERCEL_ENV\" = \"production\" ]; then npm run build; else npm run build:staging; fi",
+  "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
