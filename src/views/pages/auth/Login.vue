@@ -24,6 +24,11 @@ const isPasswordVisible = ref(false)
 const errorMessage = ref('')
 const userCredentials = reactive<UserCredentials>({ username: '', password: '' })
 
+// Second step for accounts with two-factor authentication
+const isMfaStep = ref(false)
+const isRecoveryCode = ref(false)
+const mfaCode = ref('')
+
 // What the portal manages, shown on the brand panel
 const highlights = [
   { icon: 'layout-grid', title: 'Website content', text: 'Hero, services, projects, FAQ and more' },
@@ -69,15 +74,70 @@ async function submitLogin() {
 
   isLoading.value = false
 
-  if (isLoggedIn) {
-    const redirectTo = typeof route.query.to === 'string' && route.query.to.startsWith('/') ? route.query.to : '/dashboard'
+  if (isLoggedIn === 'mfa') {
+    userCredentials.password = ''
+    mfaCode.value = ''
+    isRecoveryCode.value = false
+    isMfaStep.value = true
 
-    await router.replace(redirectTo)
+    return
+  }
+
+  if (isLoggedIn) {
+    await redirectAfterLogin()
 
     return
   }
 
   errorMessage.value = authStore.errors[0] || 'Invalid username or password'
+}
+
+async function redirectAfterLogin() {
+  const redirectTo = typeof route.query.to === 'string' && route.query.to.startsWith('/') ? route.query.to : '/dashboard'
+
+  await router.replace(redirectTo)
+}
+
+async function submitMfaCode() {
+  const code = mfaCode.value.trim()
+  if (!code) {
+    errorMessage.value = isRecoveryCode.value ? 'Enter one of your recovery codes' : 'Enter the 6-digit code from your authenticator app'
+
+    return
+  }
+
+  isLoading.value = true
+  errorMessage.value = ''
+
+  const isLoggedIn = await authStore.completeMfaLogin(code)
+
+  isLoading.value = false
+
+  if (isLoggedIn) {
+    await redirectAfterLogin()
+
+    return
+  }
+
+  errorMessage.value = authStore.errors[0] || 'Invalid verification code'
+  mfaCode.value = ''
+
+  // The challenge expired; start again from the password
+  if (!authStore.pendingMfaToken)
+    isMfaStep.value = false
+}
+
+function backToPassword() {
+  authStore.cancelMfaLogin()
+  isMfaStep.value = false
+  mfaCode.value = ''
+  errorMessage.value = ''
+}
+
+function toggleRecoveryCode() {
+  isRecoveryCode.value = !isRecoveryCode.value
+  mfaCode.value = ''
+  errorMessage.value = ''
 }
 
 // Lifecycle Hooks
@@ -169,14 +229,100 @@ onMounted(() => {
             />
           </div>
           <h1 class="auth-title text-center mb-1">
-            Welcome back
+            {{ isMfaStep ? 'Two-step verification' : 'Welcome back' }}
           </h1>
           <p class="text-body-1 text-medium-emphasis text-center mb-0">
-            Sign in to manage {{ studioName }}
+            <template v-if="!isMfaStep">
+              Sign in to manage {{ studioName }}
+            </template>
+            <template v-else-if="isRecoveryCode">
+              Enter one of the recovery codes you saved when you set up two-step verification.
+            </template>
+            <template v-else>
+              Enter the 6-digit code from your authenticator app.
+            </template>
           </p>
         </VCardText>
 
-        <VCardText>
+        <VCardText v-if="isMfaStep">
+          <VForm @submit.prevent="submitMfaCode">
+            <VRow>
+              <VCol cols="12">
+                <VTextField
+                  v-if="isRecoveryCode"
+                  key="recovery"
+                  v-model="mfaCode"
+                  autofocus
+                  label="Recovery code"
+                  placeholder="xxxxx-xxxxx"
+                  autocomplete="off"
+                  prepend-inner-icon="key"
+                />
+                <VTextField
+                  v-else
+                  key="totp"
+                  v-model="mfaCode"
+                  autofocus
+                  label="Verification code"
+                  placeholder="123456"
+                  inputmode="numeric"
+                  autocomplete="one-time-code"
+                  maxlength="6"
+                  prepend-inner-icon="smartphone"
+                />
+              </VCol>
+
+              <VCol
+                v-if="errorMessage"
+                cols="12"
+              >
+                <VAlert
+                  type="error"
+                  variant="tonal"
+                  density="compact"
+                  icon="alert-circle"
+                >
+                  {{ errorMessage }}
+                </VAlert>
+              </VCol>
+
+              <VCol cols="12">
+                <VBtn
+                  block
+                  size="large"
+                  type="submit"
+                  append-icon="arrow-right"
+                  :loading="isLoading"
+                >
+                  Verify
+                </VBtn>
+              </VCol>
+
+              <VCol
+                cols="12"
+                class="d-flex justify-space-between flex-wrap gap-2"
+              >
+                <VBtn
+                  variant="text"
+                  size="small"
+                  prepend-icon="arrow-left"
+                  @click="backToPassword"
+                >
+                  Back
+                </VBtn>
+                <VBtn
+                  variant="text"
+                  size="small"
+                  @click="toggleRecoveryCode"
+                >
+                  {{ isRecoveryCode ? 'Use authenticator app' : 'Use a recovery code' }}
+                </VBtn>
+              </VCol>
+            </VRow>
+          </VForm>
+        </VCardText>
+
+        <VCardText v-else>
           <VForm @submit.prevent="submitLogin">
             <VRow>
               <VCol cols="12">

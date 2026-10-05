@@ -104,6 +104,11 @@ export const useNavItems = () => {
       to: 'admin-users',
       permission: PERMISSIONS.ADMIN_USER_MANAGE,
     },
+    {
+      title: 'Security',
+      icon: { icon: 'shield-check' },
+      to: 'admin-security',
+    },
   ]
 
   const mainItems = computed(() => filterNavByPermission(allItems, canAny))

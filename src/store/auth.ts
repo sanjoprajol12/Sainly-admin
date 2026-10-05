@@ -8,6 +8,9 @@ export const useAuthStore = defineStore('auth', () => {
   const errors = ref<string[]>([])
   const user = ref<AdminUserView | null>(null)
 
+  // Set between a correct password and a correct two-factor code; kept in memory only
+  const pendingMfaToken = ref<string | null>(null)
+
   const jwtService = JwtService
   const adminUserService = new AdminUserLoginService()
   const isAuthenticated = ref(!!jwtService.getToken())
@@ -32,19 +35,66 @@ export const useAuthStore = defineStore('auth', () => {
     jwtService.destroyToken()
   }
 
-  const login = async (credentials: UserCredentials) => {
+  // Returns 'mfa' when the account needs a two-factor code before it is signed in
+  const login = async (credentials: UserCredentials): Promise<boolean | 'mfa'> => {
     try {
-      const { token, user: authUser } = await adminUserService.checkLoginUser(credentials)
+      const response = await adminUserService.checkLoginUser(credentials)
 
-      setAuth(authUser, token)
+      if ('mfa_required' in response && response.mfa_required) {
+        pendingMfaToken.value = response.mfa_token
+        errors.value = []
 
-      return true
+        return 'mfa'
+      }
+
+      if ('token' in response) {
+        setAuth(response.user, response.token)
+
+        return true
+      }
+
+      setError(null)
+
+      return false
     }
     catch (error: any) {
       setError(error)
 
       return false
     }
+  }
+
+  const completeMfaLogin = async (code: string) => {
+    if (!pendingMfaToken.value) {
+      setError({ message: 'Your sign-in attempt expired. Please enter your password again.' })
+
+      return false
+    }
+
+    try {
+      const { token, user: authUser } = await adminUserService.verifyMfaLogin({
+        mfa_token: pendingMfaToken.value,
+        code: code.trim(),
+      })
+
+      pendingMfaToken.value = null
+      setAuth(authUser, token)
+
+      return true
+    }
+    catch (error: any) {
+      // An expired challenge cannot be retried; send the user back to the password step
+      if (error?.status === 401)
+        pendingMfaToken.value = null
+      setError(error)
+
+      return false
+    }
+  }
+
+  const cancelMfaLogin = () => {
+    pendingMfaToken.value = null
+    errors.value = []
   }
 
   const logout = async () => {
@@ -92,6 +142,11 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  const setMfaEnabled = (enabled: boolean) => {
+    if (user.value)
+      user.value = { ...user.value, mfa_enabled: enabled }
+  }
+
   // Keeps the header in sync after the user edits their own username
   const updateUsername = (username: string) => {
     if (user.value)
@@ -102,7 +157,11 @@ export const useAuthStore = defineStore('auth', () => {
     errors,
     user,
     isAuthenticated,
+    pendingMfaToken,
     login,
+    completeMfaLogin,
+    cancelMfaLogin,
+    setMfaEnabled,
     logout,
     setAuth,
     purgeAuth,

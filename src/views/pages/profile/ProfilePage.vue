@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { avatarText } from '@/utils/formatters'
 import AdminUserLoginService from '@/services/auth/AdminUserLoginService'
+import JwtService from '@/services/JwtService'
 import { useAuthStore } from '@/store/auth'
 import type { ChangeCredentialsPayload } from '@/types/auth/UserCredentials'
 import { useFormValidation } from '@/utils/useFormValidation'
@@ -56,7 +57,10 @@ const saveCredentials = async () => {
 
   isSaving.value = true
   try {
-    const { message } = await adminUserLoginService.changeCredentials(payload)
+    const { message, token } = await adminUserLoginService.changeCredentials(payload)
+
+    if (token)
+      JwtService.saveToken(token)
 
     if (payload.newUsername)
       authStore.updateUsername(payload.newUsername)
