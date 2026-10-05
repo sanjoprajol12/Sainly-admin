@@ -2,6 +2,8 @@
   "buildCommand": "if [ \"$VERCEL_ENV\" = \"production\" ]; then npm run build; else npm run build:staging; fi",
   "outputDirectory": "dist",
   "rewrites": [
+    { "source": "/api/:path*", "destination": "https://sainlystudio.vercel.app/api/:path*" },
+    { "source": "/uploads/:path*", "destination": "https://sainlystudio.vercel.app/uploads/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
