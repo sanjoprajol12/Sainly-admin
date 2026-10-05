@@ -1,6 +1,6 @@
 import BaseAPIService from '@/services/BaseAPIService'
 import type { APIResponseSuccess } from '@/types/APIResponse'
-import type { AdminUser, AdminUserView } from '@/types/admin-user/AdminUser'
+import type { AdminUser, AdminUserUpdateResponse, AdminUserView } from '@/types/admin-user/AdminUser'
 
 export default class AdminUserService extends BaseAPIService {
   constructor() {
@@ -16,7 +16,11 @@ export default class AdminUserService extends BaseAPIService {
   }
 
   async update(id: string, data: Partial<AdminUser>) {
-    return this.put<AdminUserView>(data, encodeURIComponent(id))
+    return this.put<AdminUserUpdateResponse>(data, encodeURIComponent(id))
+  }
+
+  async resetMfa(id: string) {
+    return this.delete<APIResponseSuccess>(`${encodeURIComponent(id)}/mfa`)
   }
 
   async destroy(id: string) {

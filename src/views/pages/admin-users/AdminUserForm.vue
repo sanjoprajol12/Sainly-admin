@@ -71,12 +71,12 @@ const handleSubmitAdminUser = async () => {
       payload.password = adminUserFormData.password
 
     if (isEditMode.value && currentAdminUserId.value) {
-      const updated = await adminUserService.update(currentAdminUserId.value, payload)
+      const { token, ...updated } = await adminUserService.update(currentAdminUserId.value, payload)
 
       const isSelf = updated.id === authStore.user?.id
 
       if (isSelf)
-        authStore.setAuth(updated)
+        authStore.setAuth(updated, token)
       showSuccess('Admin user updated successfully')
 
       // A super admin who demoted themselves can no longer open this page

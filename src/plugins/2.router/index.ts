@@ -196,6 +196,16 @@ const router = createRouter({
             key: "fullPath",
           },
         },
+        {
+          path: "admin-security",
+          name: "admin-security",
+          component: () => import("@/views/pages/security/SecurityPage.vue"),
+          meta: {
+            title: "Security",
+            icon: "shield-check",
+            key: "fullPath",
+          },
+        },
 
         // Error & Other
         {

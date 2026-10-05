@@ -27,8 +27,6 @@ export default defineConfig(({ mode }) => {
           'vue',
           VueRouterAutoImports,
           '@vueuse/core',
-          '@vueuse/math',
-          'vue-i18n',
           'pinia',
         ],
         dirs: [

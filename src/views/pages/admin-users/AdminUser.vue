@@ -18,6 +18,7 @@ const adminUserList = ref<AdminUserView[]>([])
 const tableHeaders = [
   { title: 'Username', label: 'username' },
   { title: 'Role', label: 'role' },
+  { title: 'Two-step', label: 'mfa_enabled' },
   { title: 'Created', label: 'createdAt' },
   { title: 'Actions', label: 'actions', textAlign: 'center' as const },
 ]
@@ -45,6 +46,24 @@ const openAddDrawer = () => {
 const editAdminUser = (item: AdminUserView) => {
   isDrawerVisible.value = true
   nextTick(() => adminUserFormRef.value?.edit(item))
+}
+
+const resetMfa = (item: AdminUserView) => {
+  $confirm?.({
+    message: `Turn off two-step verification for "${item.username}"? They will be signed out and can set it up again from their Security page.`,
+    button: { no: 'No', yes: 'Yes' },
+    callback: async (ok: boolean) => {
+      if (!ok) return
+      try {
+        await adminUserService.resetMfa(item.id)
+        showSuccess('Two-step verification reset')
+        getAllAdminUsers()
+      }
+      catch (error) {
+        showError(error)
+      }
+    },
+  })
 }
 
 const deleteAdminUser = (item: AdminUserView) => {
@@ -135,6 +154,16 @@ onMounted(() => getAllAdminUsers())
           </VChip>
         </template>
 
+        <template #mfa_enabled="{ row: item }">
+          <VChip
+            :color="item.mfa_enabled ? 'success' : 'secondary'"
+            size="small"
+            :prepend-icon="item.mfa_enabled ? 'shield-check' : 'shield-off'"
+          >
+            {{ item.mfa_enabled ? 'On' : 'Off' }}
+          </VChip>
+        </template>
+
         <template #createdAt="{ row: item }">
           {{ item.createdAt ? formatDate(item.createdAt) : '-' }}
         </template>
@@ -146,6 +175,16 @@ onMounted(() => getAllAdminUsers())
               @click="editAdminUser(item)"
             >
               <VIcon icon="pencil" />
+            </IconBtn>
+            <IconBtn
+              v-if="item.mfa_enabled && !isCurrentUser(item)"
+              size="small"
+              @click="resetMfa(item)"
+            >
+              <VIcon icon="shield-off" />
+              <VTooltip activator="parent">
+                Reset two-step verification
+              </VTooltip>
             </IconBtn>
             <IconBtn
               size="small"

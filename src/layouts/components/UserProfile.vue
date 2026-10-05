@@ -20,6 +20,10 @@ const logout = async () => {
 const manageProfile = () => {
   router.push({ name: 'admin-profile' })
 }
+
+const manageSecurity = () => {
+  router.push({ name: 'admin-security' })
+}
 </script>
 
 <template>
@@ -86,6 +90,16 @@ const manageProfile = () => {
               />
             </template>
             <VListItemTitle>My account</VListItemTitle>
+          </VListItem>
+
+          <VListItem @click="manageSecurity">
+            <template #prepend>
+              <VIcon
+                size="22"
+                icon="shield-check"
+              />
+            </template>
+            <VListItemTitle>Security</VListItemTitle>
           </VListItem>
 
           <VDivider class="my-1" />
