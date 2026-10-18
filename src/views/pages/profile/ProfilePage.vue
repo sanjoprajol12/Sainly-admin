@@ -23,7 +23,7 @@ const credentialsForm = reactive({
 const formValidationRules = computed(() => ({
   currentPassword: { required: rules.required },
   newUsername: { required: rules.required },
-  newPassword: { minLength: rules.minLength(6) },
+  newPassword: { minLength: rules.minLength(12) },
   confirmPassword: {
     sameAs: rules.custom(
       (value: string) => value === credentialsForm.newPassword,
