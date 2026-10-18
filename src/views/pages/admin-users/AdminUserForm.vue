@@ -37,7 +37,7 @@ const formValidationRules = computed(() => ({
   username: { required: rules.required },
   password: {
     required: rules.requiredIf(!isEditMode.value),
-    minLength: rules.minLength(6),
+    minLength: rules.minLength(12),
   },
 }))
 
@@ -168,7 +168,7 @@ watch(
               autocomplete="new-password"
               :type="isPasswordVisible ? 'text' : 'password'"
               :append-inner-icon="isPasswordVisible ? 'eye-off' : 'eye'"
-              :hint="isEditMode ? 'Leave blank to keep the current password' : 'At least 6 characters'"
+              :hint="isEditMode ? 'Leave blank to keep the current password' : 'At least 12 characters, mixing upper and lower case, numbers or symbols'"
               persistent-hint
               :error-messages="validationErrors('password')"
               @click:append-inner="isPasswordVisible = !isPasswordVisible"
